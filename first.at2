@@ -1,0 +1,118 @@
+; settings 15 points to distribute
+#config scanner=4
+#config weapon=3
+#config armor=1
+#config engine=2
+#config heatsinks=2
+#config mines=0
+#config shield=0
+
+#def last_width
+
+out 17, 64
+mov bx, 0
+
+mov ax, 1
+out 24, 1   ; shield    on
+int 3       ; keepshift on
+
+jmp 2
+
+; main loop
+:2
+    mov     cx, 2   ; max shoot per game loop
+    in      7, ax   ; scan
+    cmp     ax, 1499
+    ja      5       ; no target found, rotate
+
+    out     11, 100
+
+    in      17, ax
+    cmp     ax, 1
+    jbe     7       ; no reduce
+    ja      6       ; reduce
+
+; shoot
+:3
+    out     11, 50   ; stop ship
+
+    ;out     18, 1
+    out     15
+    ;out     18, 0
+
+    loop    3
+
+    jmp     2
+
+; bisect search
+:4
+    in      17, ax ; get scan width
+    shr     ax, 1
+    mpy     bx, ax ; multiply by last width
+    out     12, bx
+
+    jmp     2
+
+; rotate turret and scan
+:5
+    in      17,  ax ; get scan width
+
+    out     14,  ax  ; turn from bx scan arc width
+
+    add     ax,  8
+    out     17,  ax ; set scan width
+    cmp     ax, 64
+    jb      2       ; do not rotate if scan width not maxed
+
+    out     12, 127
+
+
+    jmp     2
+
+; reduce scan arc width
+:6
+    in      17, ax
+    mov     dx, ax
+    mov     last_width, dx
+    shr     dx, 2
+    sub     ax, dx
+    out     17, ax  ; reduce scan arc width
+    jmp     7
+
+; decide
+:7
+    out     14, 8
+
+    in      8,  bx  ; check accuracy
+    cmp     bx, 0   ;
+
+    je      3       ; shoot
+    jmp     4       ; nobody in front of robot bisect search
+
+;1   0    I  Spedometer        Returns current throttle setting[-75- 100]
+;2   0    I  Heat Sensor       Returns current heat-level       [0 - 500]
+;3   0    I  Compass           Returns current heading          [0 - 255]
+;4   0    I  Turret Sensor     Returns current turret offset    [0 - 255]
+;5   0    I  Turret Sensor     Returns absolute turret heading  [0 - 255]
+;6   0    I  Damage Sensor     Returns current armor level      [0 - 100]
+;7   1    I  Scanner           Returns range to nearest target in scan arc
+;8   1    I  Accuracy          Returns accuracy of last scan     [-2 - 2]
+;9   3    I  Radar             Returns range to nearest target
+;10   0    I  Random Generator  Returns random number     [-32768 - 32767]
+
+;11   0    O  Throttle          Sets throttle                  [-75 - 100]
+;12   0    O  Rotate Turret     Offsets turret (cumulative)
+;13   0    O  Aim Turret        Sets turret offset to value      [0 - 255]
+;14   0    O  Steering          Turn specified number of degrees
+;15   3    O  Weapon control    Fires weapon w/ angle adjustment  [-4 - 4]
+
+;16  40    I  Sonar             Returns heading to nearest target[0 - 255]
+
+;17   0   I/O Scan-Arc          Sets/Returns scan-arc width.      [0 - 64]
+;18   0   I/O Overburn          Sets/Returns overburn status
+;19   0   I/O Transponder       Sets/Returns current transponder ID
+;20   0   I/O Shutdown-Level    Sets/Returns shutdown-level.
+;21   0   I/O Com Channel       Sets/Returns com channel setting
+;22   0   I/O Mine Layer        Lays mine or Returns mines-remaining.
+;23   0   I/O Mine Trigger      Detonates/returns previously-placed mines.
+;24   0   I/O Shield            Sets/Returns shield's status (0=off, else=on)
