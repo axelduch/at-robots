@@ -1,4 +1,4 @@
-; settings 15 points to distribute
+; settings 12 points to distribute
 #config scanner=4
 #config weapon=3
 #config armor=1
